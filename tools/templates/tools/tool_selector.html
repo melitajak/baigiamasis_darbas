@@ -1,0 +1,115 @@
+{% extends 'tools/sidebar.html' %}
+
+{% block title %}Tool Selector{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Tool Selector Section -->
+    <section class="form-section">
+        <h1>
+            <i class="bi bi-tools" style="font-size: 1.5rem; color: #495057;"></i>
+            Tool Selector
+        </h1>
+        <p>Select a tool from the dropdown below and configure it for your needs.</p>
+
+        <!-- Tool Selection Dropdown -->
+        <form method="get" class="mb-3">
+            <label for="tool" class="form-label">Select a Tool:</label>
+            <select id="tool" name="tool" class="form-select" onchange="this.form.submit()">
+                <option value="">-- Select a Tool --</option>
+                {% for tool_name, tool in tools.items %}
+                <option value="{{ tool_name }}" {% if tool_name == selected_tool %}selected{% endif %}>
+                    {{ tool_name }} - {{ tool.description }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <!-- Tool Configuration Section -->
+        {% if selected_tool and tool_details %}
+        <div>
+            <h2>Configure {{ selected_tool }}</h2>
+            <form method="post" enctype="multipart/form-data" id="tool-execution-form">
+                {% csrf_token %}
+
+                <!-- Render Options Dynamically -->
+                {% for option in tool_details.options %}
+                <div class="mb-3">
+                    <input type="checkbox" id="{{ option.label }}_enabled" name="{{ option.label }}_enabled" class="form-check-input"
+                        onchange="toggleOptionInput('{{ option.label }}')">
+                    <label for="{{ option.label }}" class="form-check-label">{{ option.label }}</label>
+                    <div id="{{ option.label }}_input" style="display: none;">
+                        {% if option.type == "file" %}
+                        <input type="file" name="{{ option.label }}" id="{{ option.label }}" class="form-control" {% if option.mandatory %}required{% endif %}>
+                        {% elif option.type == "text" %}
+                        <input type="text" name="{{ option.label }}" id="{{ option.label }}" class="form-control" {% if option.mandatory %}required{% endif %}>
+                        {% elif option.type == "number" %}
+                        <input type="number" name="{{ option.label }}" id="{{ option.label }}" class="form-control" {% if option.mandatory %}required{% endif %}>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <!-- Submit Button -->
+                <button type="submit" class="btn btn-primary">Run {{ selected_tool }}</button>
+            </form>
+        </div>
+        {% else %}
+        <p class="text-muted">Please select a tool to configure and run.</p>
+        {% endif %}
+
+        <!-- Loader -->
+        <div id="loader" style="display: none; text-align: center; margin-top: 20px;">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Processing your request, please wait...</p>
+        </div>
+
+        <!-- Feedback Section -->
+        <div id="feedback-section" style="margin-top: 20px;"></div>
+    </section>
+</div>
+<script>
+    function toggleOptionInput(optionLabel) {
+        const checkbox = document.getElementById(`${optionLabel}_enabled`);
+        const input = document.getElementById(`${optionLabel}_input`);
+        input.style.display = checkbox.checked ? 'block' : 'none';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const form = document.getElementById('tool-execution-form');
+        const loader = document.getElementById('loader');
+        const feedbackSection = document.getElementById('feedback-section');
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault(); 
+            feedbackSection.innerHTML = ''; 
+            loader.style.display = 'block'; 
+
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value,
+                },
+            })
+                .then((response) => response.json())
+                .then((data) => {
+                    loader.style.display = 'none'; 
+                    if (data.success) {
+                        feedbackSection.innerHTML = `<p class="text-success">${data.message}</p>`;
+                    } else {
+                        feedbackSection.innerHTML = `<p class="text-danger"><strong>Error:</strong><br>${data.error_output}</p>`;
+                    }
+                })
+                .catch((error) => {
+                    loader.style.display = 'none';
+                    feedbackSection.innerHTML = `<p class="text-danger"><strong>Unexpected Error:</strong><br>${error.message}</p>`;
+                });
+        });
+    });
+</script>
+
+{% endblock %}

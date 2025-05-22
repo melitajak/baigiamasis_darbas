@@ -1,0 +1,16 @@
+{% extends 'tools/sidebar.html' %}
+{% load static %}
+{% block title %}Workflow Editor{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <h1><i class="bi bi-diagram-3"></i> Visual Workflow Editor</h1>
+    <p>Build your workflow visually by dragging and connecting tools.</p>
+
+    <div id="react-workflow-editor" style="height: 600px; border: 1px solid #ccc; border-radius: 10px;"></div>
+</div>
+
+<!-- Dynamically loaded React scripts -->
+<link rel="stylesheet" href="{% static react_css %}">
+<script src="{% static react_js %}" defer></script>
+{% endblock %}

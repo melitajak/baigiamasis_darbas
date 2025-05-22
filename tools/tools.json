@@ -1,0 +1,90 @@
+{
+    "fastqc": {
+        "description": "A quality control tool for high throughput sequence data.",
+        "install_command": "",
+        "command": "fastqc",
+        "options": [
+            {
+                "label": "input",
+                "flag": null,
+                "type": "file",
+                "mandatory": true
+            },
+            {
+                "label": "output",
+                "flag": "-o",
+                "type": "text",
+                "mandatory": false
+            },
+            {
+                "label": "thread",
+                "flag": "-t",
+                "type": "number",
+                "mandatory": false
+            },
+            {
+                "label": "kmers",
+                "flag": "-k",
+                "type": "number",
+                "mandatory": false
+            }
+        ]
+    },
+    "spades": {
+        "description": "SPAdes - A genome assembler for single-cell and multi-cell data",
+        "install_command": "",
+        "command": "spades.py",
+        "options": [
+            {
+                "label": "input_reads",
+                "flag": "-s",
+                "type": "file",
+                "mandatory": true
+            },
+            {
+                "label": "paired_end_reads1",
+                "flag": "-1",
+                "type": "file",
+                "mandatory": false
+            },
+            {
+                "label": "paired_end_reads2",
+                "flag": "-2",
+                "type": "file",
+                "mandatory": false
+            },
+            {
+                "label": "output_directory",
+                "flag": "-o",
+                "type": "text",
+                "mandatory": false
+            },
+            {
+                "label": "threads",
+                "flag": "-t",
+                "type": "number",
+                "mandatory": false
+            }
+        ]
+    },
+    "wget": {
+        "description": "",
+        "install_command": "",
+        "command": "wget",
+        "options": [
+            {
+                "label": "input",
+                "flag": null,
+                "type": "text",
+                "mandatory": true
+            },
+            {
+                "label": "output",
+                "flag": "-O",
+                "type": "text",
+                "mandatory": true
+            }
+        ]
+    }
+
+}

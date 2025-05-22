@@ -1,0 +1,313 @@
+{% extends 'tools/sidebar.html' %}
+
+{% block title %}Add New Tool{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <section class="form-section mb-4">
+        <h1>Tool Installation</h1>
+        <p>Install the tool before adding the options (If tool is already installed, skip this step).</p>
+
+        <form id="tool-details-form">
+            {% csrf_token %}
+            <div class="nice-form-group">
+                <label for="name">Tool Name</label>
+                <input type="text" id="name" name="name" placeholder="Tool name" class="form-control" required>
+            </div>
+
+            <div class="nice-form-group">
+                <label for="description">Description (Optional)</label>
+                <textarea id="description" name="description" placeholder="Tool description" class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="nice-form-group">
+                <label for="installation_mode">Choose Installation Mode</label>
+                <div class="form-check form-switch">
+                    <input type="checkbox" class="form-check-input" id="installation_mode" name="installation_mode" checked>
+                    <label class="form-check-label" for="installation_mode">Automatic Installation</label>
+                </div>
+            </div>
+
+            <div id="manual_install_section" style="display: none;">
+                <label for="install_command" class="form-label">Installation Command</label>
+                <input type="text" id="install_command" name="install_command" placeholder="e.g., pip3 install tool" class="form-control">
+                <p class="text-warning" style="font-size: 0.9rem; margin-top: 10px;">
+                    Note: For manual installation, ensure that all necessary dependencies are installed beforehand, as the command may fail if required packages are missing.
+                </p>
+            </div>
+
+            <div id="auto_install_warning" style="margin-top: 10px;">
+                <p class="text-warning" style="font-size: 0.9rem;">
+                    Note: Automatic installation attempts to use the default installation commands, so it may not always work.
+                </p>
+            </div>
+
+            <button type="button" class="btn btn-primary mt-4" id="install_tool">Install Tool</button>
+
+            <div id="feedback-section" class="mt-3">
+                <p class="text-muted"></p>
+            </div>
+        </form>
+    </section>
+
+    <section class="form-section">
+        <h1>Tool Command and Options</h1>
+        <p>Define the commands and options for the tool.</p>
+
+        <form id="tool-command-form">
+            <div class="nice-form-group">
+                <label for="tool_command">Command:</label>
+                <div class="d-flex align-items-center">
+                    <!-- Command Input Box -->
+                    <input type="text" id="tool_command" name="tool_command" 
+                           placeholder="Enter the command that is used to run the tool, without options" 
+                           class="form-control me-2">
+                    <!-- Help Icon -->
+                    <i class="bi bi-question-circle" id="help_icon" 
+                       style="cursor: pointer; font-size: 1.2rem;" 
+                       title="Click for help information"></i>
+                </div>
+            </div>
+            
+            <div id="help_output_section" style="display: none; margin-top: 20px;">
+                <div class="card">
+                    <div id="helpOutputCollapse" class="collapse">
+                        <div class="card-body">
+                            <pre id="help_output" 
+                                 style="background-color: #f8f9fa; padding: 10px; border-radius: 5px; overflow-x: auto;">
+                            </pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="options_section" class="mt-4">
+                <h4>Tool Options</h4>
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Flag (Optional)</th>
+                            <th>Type</th>
+                            <th>Label</th>
+                            <th>Mandatory</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="options_table_body"></tbody>
+                </table>
+                <button type="button" class="btn btn-success mt-2" id="add_option_row">Add Option</button>
+            </div>
+
+            <button type="button" class="btn btn-primary mt-4" id="save_tool">Save Tool</button>
+            <div id="save_tool_message" class="mt-3"></div>
+        </form>
+    </section>
+</div>
+
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+    // Get references to elements
+    const installationModeSwitch = document.getElementById('installation_mode');
+    const manualInstallSection = document.getElementById('manual_install_section');
+    const autoInstallWarning = document.getElementById('auto_install_warning');
+    const installToolButton = document.getElementById('install_tool');
+    const helpIcon = document.getElementById('help_icon');
+    const getHelpButton = document.getElementById('get_help');
+    const helpOutputSection = document.getElementById('help_output_section');
+    const helpOutput = document.getElementById('help_output');
+    const optionsTableBody = document.getElementById('options_table_body');
+    const addOptionRowButton = document.getElementById('add_option_row');
+    const saveToolButton = document.getElementById('save_tool');
+    const feedbackSection = document.getElementById('feedback-section');
+    const form = document.getElementById('tool-command-form');
+    
+    //Manual and Automatic Installation
+    installationModeSwitch.addEventListener('change', () => {
+        if (installationModeSwitch.checked) {
+            manualInstallSection.style.display = 'none';
+            autoInstallWarning.style.display = 'block';
+        } else {
+            manualInstallSection.style.display = 'block';
+            autoInstallWarning.style.display = 'none';
+        }
+    });
+
+    // Install Tool Logic
+    installToolButton.addEventListener('click', () => {
+            const toolName = document.getElementById('name').value.trim();
+            const installCommand = document.getElementById('install_command').value.trim();
+            const installationMode = installationModeSwitch.checked;
+
+            if (!toolName) {
+                alert("Tool name is required for installation.");
+                return;
+            }
+
+            feedbackSection.innerHTML = "<p>Installing tool...</p>";
+
+            const data = {
+                name: toolName,
+                install_command: installationMode ? "" : installCommand,
+                autodetect_install: installationMode
+            };
+
+            fetch("{% url 'install_tool' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    feedbackSection.innerHTML = `<p class="text-success">
+                        Tool installed successfully. Version: ${data.version}.
+                    </p>`;
+                } else {
+                    feedbackSection.innerHTML = `<p class="text-danger">Error: ${data.error}</p>`;
+                }
+            })
+            .catch(error => {
+                feedbackSection.innerHTML = `<p class="text-danger">An unexpected error occurred during installation.</p>`;
+                console.error(error);
+            });
+        });
+
+    // Fetch and display help output
+    helpIcon.addEventListener('click', () => {
+        const toolName = document.getElementById('name').value.trim();
+        if (!toolName) {
+            alert("Please enter a tool name in the 'Tool Name' field to fetch help.");
+            return;
+        }
+
+        if (!helpOutputCollapse.classList.contains('show')) {
+            fetch("{% url 'tool_help' %}", {
+                method: "POST",
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}",
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({ tool_name: toolName })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    helpOutput.innerText = data.help_output;
+                    helpOutputSection.style.display = 'block';
+                    helpOutputCollapse.classList.add('show'); 
+                } else {
+                    alert(data.error || "Failed to fetch help output.");
+                }
+            })
+            .catch(error => {
+                alert("An unexpected error occurred while fetching help.");
+                console.error(error);
+            });
+        } else {
+            helpOutputCollapse.classList.remove('show');
+            helpOutputSection.style.display = 'none';
+        }
+    });
+
+
+    document.getElementById('add_option_row').addEventListener('click', () => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td><input type="text" class="form-control option-flag" placeholder="Flag (e.g., -o)" /></td>
+            <td>
+                <select class="form-select option-type">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="file">File</option>
+                </select>
+            </td>
+            <td><input type="text" class="form-control option-label" placeholder="Label (e.g., Output Directory)" required /></td>
+            <td><input type="checkbox" class="form-check-input option-mandatory" /></td>
+            <td><button type="button" class="btn btn-danger remove-row">Remove</button></td>
+        `;
+        document.getElementById('options_table_body').appendChild(row);
+
+        row.querySelector('.remove-row').addEventListener('click', () => row.remove());
+    });
+
+
+    // Save Tool Button Logic
+    saveToolButton.addEventListener('click', () => {
+        const toolName = document.getElementById('name').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const toolCommand = document.getElementById('tool_command').value.trim();
+
+        if (!toolName || !toolCommand) {
+            alert("Tool name and command template are required.");
+            return;
+        }
+
+        // Extract options
+        const options = [];
+        optionsTableBody.querySelectorAll('tr').forEach(row => {
+            const flag = row.querySelector('.option-flag').value.trim();
+            const type = row.querySelector('.option-type').value;
+            const label = row.querySelector('.option-label').value.trim();
+            const mandatory = row.querySelector('.option-mandatory').checked;
+
+            if (label) {
+            options.push({ flag: flag || null, type, label, mandatory });
+        }
+        });
+
+        // Submit data to the backend
+        fetch("{% url 'tool_addition' %}", {
+            method: "POST",
+            headers: {
+                "X-CSRFToken": "{{ csrf_token }}",
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                name: toolName,
+                description,
+                command: toolCommand,
+                options
+            })
+        })
+        .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            displayMessage("Tool saved successfully!", "success");
+
+            form.reset();
+            optionsTableBody.innerHTML = '';
+        } else {
+            displayMessage(`Error: ${data.error}`, "danger");
+        }
+    })
+    .catch(error => {
+        displayMessage(`An unexpected error occurred: ${error.message}`, "danger");
+        console.error(error);
+    });
+});
+
+    form.onsubmit = (event) => {
+        event.preventDefault();
+        saveToolButton.click(); 
+    };
+});
+
+function displayMessage(message, type) {
+    const messageDiv = document.getElementById("save_tool_message");
+    messageDiv.className = `alert alert-${type}`;
+    messageDiv.textContent = message;
+}
+
+</script>
+
+{% endblock %}

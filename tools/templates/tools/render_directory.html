@@ -1,0 +1,41 @@
+<ul class="list-group mt-3">
+    {% for key, value in data.items %}
+        {% if key == "files" %}
+            {% for file in value %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>{{ file.name }}</span>
+                <div class="d-flex align-items-center">
+                    <!-- Download File -->
+                    <a href="/media/{{ file.path }}" class="text-success me-3" download>
+                        <i class="bi bi-download" style="font-size: 1.2rem; cursor: pointer;" title="Download"></i>
+                    </a>
+                    <!-- Delete File -->
+                    <i class="bi bi-trash text-danger" style="font-size: 1.2rem; cursor: pointer;" 
+                       onclick="deleteFile('{{ file.path }}', '{{ file.name }}')" title="Delete"></i>
+                </div>
+            </li>
+            {% endfor %}
+        {% else %}
+            <li class="list-group-item">
+                <div class="d-flex justify-content-between align-items-center">
+                    <strong>{{ key }}</strong>
+                    <div>
+                        <!-- Download Folder -->
+                        <a href="{% url 'download_folder' folder_path=parent|add:'/'|add:key %}" class="btn btn-sm btn-success me-2">
+                            <i class="feather feather-download"></i> Download
+                        </a>
+                        <!-- Delete Folder -->
+                        <form method="post" action="{% url 'delete_folder' %}" style="display: inline;" onsubmit="return confirmDeleteFolder('{{ parent|add:'/'|add:key }}')">
+                            {% csrf_token %}
+                            <input type="hidden" name="folder_path" value="{{ parent|add:'/'|add:key }}">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                <i class="feather feather-trash-2"></i> Delete
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% include 'tools/render_directory.html' with data=value parent=parent|add:'/'|add:key %}
+            </li>
+        {% endif %}
+    {% endfor %}
+</ul>

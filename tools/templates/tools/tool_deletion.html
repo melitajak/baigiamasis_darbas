@@ -1,0 +1,64 @@
+{% extends 'tools/sidebar.html' %}
+
+{% block title %}Tool Deletion{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <!-- Tool Deletion Section -->
+    <section class="form-section">
+        <h1>
+            <i class="bi bi-trash" style="font-size: 1.5rem; color: #dc3545;"></i>
+            Tool Deletion
+        </h1>
+        <p>Select a tool from the dropdown below to delete it.</p>
+
+        <!-- Tool Deletion Form -->
+        <form id="delete-tool-form">
+            <label for="delete_tool" class="form-label">Select a Tool to Delete:</label>
+            <select id="delete_tool" class="form-select">
+                <option value="">-- Select a Tool --</option>
+                {% for tool_name in tools.keys %}
+                <option value="{{ tool_name }}">{{ tool_name }}</option>
+                {% endfor %}
+            </select>
+            <button type="button" class="btn btn-danger mt-3" onclick="deleteTool()">Delete Tool</button>
+        </form>
+
+        <!-- Feedback Section -->
+        <div id="delete-feedback-section" style="margin-top: 20px;"></div>
+    </section>
+</div>
+
+<script>
+    function deleteTool() {
+        const toolName = document.getElementById('delete_tool').value;
+        const feedbackSection = document.getElementById('delete-feedback-section');
+
+        if (!toolName) {
+            feedbackSection.innerHTML = '<p class="text-danger">Please select a tool to delete.</p>';
+            return;
+        }
+
+        fetch('{% url "delete_tool" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}',
+            },
+            body: new URLSearchParams({ tool_name: toolName }),
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                feedbackSection.innerHTML = `<p class="text-success">${data.message}</p>`;
+                location.reload(); 
+            } else {
+                feedbackSection.innerHTML = `<p class="text-danger">${data.message}</p>`;
+            }
+        })
+        .catch(error => {
+            feedbackSection.innerHTML = `<p class="text-danger">An unexpected error occurred: ${error.message}</p>`;
+        });
+    }
+</script>
+{% endblock %}
